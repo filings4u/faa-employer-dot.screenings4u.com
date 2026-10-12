@@ -50,37 +50,31 @@ async function fetchBranding(){return invoke('workforce-employer-management',{ac
 async function loadBranding(ctx,prefetched=null){let branding=null;try{const d=prefetched?await prefetched:await fetchBranding();if(d?.customer_ctpa)setCtpaRelationship(ctx,d.customer_ctpa);branding=d?.branding||null;writeBrandCache(ctx?.membership?.id,branding);if(branding)applyBranding(branding,ctx);else applyPlatformBranding(ctx);refreshCustomerName(ctx)}catch(e){console.warn('Employer branding unavailable',e);const cached=readBrandCache(ctx?.membership?.id);branding=cached?.branding||null;if(branding)applyBranding(branding,ctx);refreshCustomerName(ctx)}const name=isCtpaCustomer(ctx)?ctpaName(ctx):(branding?.portal_name||(C.kind==='agency'?ctx?.membership?.organization_name:null)||ctx?.subscription?.plan_name||C.label);setBrandLogo(branding?.logo_path||'/assets/img/logo.png',name);return branding}
 
 function shell(ctx){
-  const current=page();
-  document.body.dataset.portalPage=norm(current);
-  NAV=Array.isArray(ctx?.navigation)?ctx.navigation:[];
-  const planLabel=isCtpaCustomer(ctx)?ctpaName(ctx):(String((C.kind==='agency'?ctx?.membership?.organization_name:null)||ctx?.subscription?.plan_name||C.label));
-  const links=NAV.map(x=>`<a href="${esc(x.href||('/'+x.id+'.html'))}" class="${norm(current)===norm(x.id)?'active':''}"${norm(current)===norm(x.id)?' aria-current="page"':''}><span class="ico">${esc(x.icon||'•')}</span><span>${esc(x.label||pretty(x.id))}</span></a>`).join('');
-  document.title=`${cfgPage(current).label} | ${planLabel}`;
-  document.body.className='loading';
-  document.body.innerHTML=`<div class="app"><aside class="side" id="side"><div class="brand"><img class="brand-logo" alt="" aria-hidden="true"></div><nav class="nav"><div class="nav-title">${esc(planLabel)}</div>${links}</nav><div class="side-foot"><div style="font-size:9px;color:#9fb3c7">Portal</div><div style="font-size:11px;font-weight:800;color:#fff;margin-top:3px">${esc(C.domain)}</div></div></aside><main class="main"><header class="top"><div class="top-left"><button class="menu" id="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobileNav"><span class="menu-bars" aria-hidden="true"><span></span><span></span><span></span></span></button><span class="crumb">${esc(planLabel)} / ${esc(cfgPage(current).label)}</span></div><div class="top-right"><span class="pill">${esc(C.kind==='self'?'Self Service':'Management')}</span>${C.agency?`<span class="pill">${esc(C.agency)}</span>`:''}<button class="top-support${norm(current)==='support'?' active':''}" id="supportShortcut" type="button"${norm(current)==='support'?' aria-current="page"':''}>Support</button><button class="signout" id="logout">Sign out</button></div></header><section class="mobile-nav" id="mobileNav" aria-hidden="true" aria-label="Portal navigation"><div class="mobile-nav-inner"><div class="mobile-nav-head"><div><span>Portal navigation</span><strong>${esc(planLabel)}</strong></div><span class="mobile-nav-current">${esc(cfgPage(current).label)}</span></div><nav class="mobile-nav-links">${links}</nav><div class="mobile-nav-foot"><span>${esc(C.domain)}</span><small>Select a page to close this menu.</small></div></div></section><div class="content"><div id="error"></div><section class="hero"><span class="hero-kicker">${esc(planLabel)}</span><h1>${esc(cfgPage(current).label)}</h1><p id="subtitle">Loading portal workspace.</p><div class="hero-actions" id="actions"></div></section><section class="section" id="content"><div class="panel"><div class="loading-msg">Loading…</div></div></section></div></main></div>`;
-  const menuBtn=$('#menu'),mobileNav=$('#mobileNav');
-  const setMobileNav=open=>{
-    const isMobile=window.matchMedia('(max-width: 820px)').matches;
-    const next=!!open&&isMobile;
-    mobileNav?.classList.toggle('open',next);
-    document.body.classList.toggle('mobile-nav-open',next);
-    menuBtn?.classList.toggle('open',next);
-    menuBtn?.setAttribute('aria-expanded',String(next));
-    menuBtn?.setAttribute('aria-label',next?'Close navigation':'Open navigation');
-    mobileNav?.setAttribute('aria-hidden',String(!next));
-  };
-  if(menuBtn&&mobileNav){
-    menuBtn.onclick=()=>setMobileNav(!mobileNav.classList.contains('open'));
-    mobileNav.addEventListener('click',e=>{if(e.target.closest('a'))setMobileNav(false)});
-    window.addEventListener('resize',()=>{if(window.innerWidth>820)setMobileNav(false)},{passive:true});
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')setMobileNav(false)});
-  }
-  const supportShortcut=$('#supportShortcut');
-  if(supportShortcut)supportShortcut.onclick=()=>{
-    if(norm(current)!=='support')supportCtxWrite({page_url:location.href,page_title:document.title,page_id:current,captured_at:new Date().toISOString(),opened_from:'top_support'});
-    if(norm(current)!=='support')location.href='/support.html';
-  };
-  $('#logout').onclick=async()=>{await sb.auth.signOut();location.replace('/login.html')};
+ const current=page();document.body.dataset.portalPage=norm(current);
+ NAV=Array.isArray(ctx?.navigation)&&ctx.navigation.length?ctx.navigation:[
+ ['dashboard','Dashboard','⌂'],['company','Company Profile','▣'],['people','Employees & Drivers','●'],
+ ['programs','DOT Programs','◎'],['pools','Random Pools','◉'],['selections','Random Selections','↻'],
+ ['testing','Testing','◆'],['results','Results','✓'],['compliance','FAA Compliance','◇'],
+ ['documents','Documents','▤'],['reports','Reports','▥'],['notifications','Notifications','✉'],
+ ['order-services','Order Services','＋'],['billing','Billing','$'],['branding','Branding','◐'],
+ ['consents','Consents','☑'],['team','Team & Roles','♙'],['post-accident','Post-Accident','◆'],['support','Support','?']
+ ].map(([id,label,icon])=>({id,label,icon,href:'/'+id+'.html'}));
+ const planLabel=C.label;
+ const links=NAV.map(x=>`<a href="${esc(x.href||('/'+x.id+'.html'))}" class="${norm(current)===norm(x.id)?'active':''}"><span class="ico">${esc(x.icon||'•')}</span><span>${esc(x.label||pretty(x.id))}</span></a>`).join('');
+ document.title=`${cfgPage(current).label} | ${C.label}`;
+ document.body.className='';
+ document.body.innerHTML=`<div class="app"><aside class="side" id="side"><div class="brand"><img class="brand-logo" src="/images/logo.png" alt="${esc(C.label)}"></div><nav class="nav"><div class="nav-title">${esc(planLabel)}</div>${links}</nav><div class="side-foot"><div style="font-size:0.5625rem;color:#9fb3c7">Portal</div><div style="font-size:0.6875rem;font-weight:800;color:#fff;margin-top:3px">${esc(C.domain)}</div></div></aside><main class="main"><header class="top"><div class="top-left"><button class="menu" id="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobileNav"><span class="menu-bars" aria-hidden="true"><span></span><span></span><span></span></span></button><div class="top-context"><span class="top-eyebrow">${esc(planLabel)}</span><span class="crumb">${esc(cfgPage(current).label)}</span></div></div><div class="top-right"><div class="top-utility-group top-time-group"><div class="portal-clock"><span id="portalClockDate" class="portal-clock-date"></span><strong id="portalClockTime" class="portal-clock-time"></strong></div></div><div class="top-utility-group top-accessibility-group"><span class="top-utility-label">Text size</span><div class="font-sizer" role="group" aria-label="Page font size"><button type="button" id="fontDown" aria-label="Decrease font size">A−</button><button type="button" class="font-reset" id="fontSizeValue">Default</button><button type="button" id="fontUp" aria-label="Increase font size">A+</button></div></div><div class="top-utility-group top-action-group"><span class="pill">Management</span><span class="pill">FAA</span><button class="top-support" id="supportShortcut" type="button">Support</button><a href="https://portal.screenings4u.com/selector.html" id="s4uSwitchPortal" style="display:inline-flex;align-items:center;justify-content:center;padding:9px 13px;border-radius:9px;background:#ff6b00;color:#fff;font-size:12px;font-weight:800;text-decoration:none">↔ Switch Portal</a><button class="signout" id="logout">Sign out</button></div></div></header><section class="mobile-nav" id="mobileNav" aria-hidden="true"><div class="mobile-nav-inner"><div class="mobile-nav-head"><div><span>Portal navigation</span><strong>${esc(planLabel)}</strong></div><span class="mobile-nav-current">${esc(cfgPage(current).label)}</span></div><nav class="mobile-nav-links">${links}</nav><div class="mobile-nav-foot"><span>${esc(C.domain)}</span><small>Select a page to close this menu.</small></div></div></section><div class="content"><div id="error"></div><section class="hero"><span class="hero-kicker">${esc(planLabel)}</span><h1>${esc(cfgPage(current).label)}</h1><p id="subtitle">FAA DOT employer workspace.</p><div class="hero-actions" id="actions"></div></section><section class="section" id="content"></section></div></main></div>`;
+ const mobileNav=$('#mobileNav'),menuBtn=$('#menu');
+ const toggle=open=>{const yes=!!open&&window.innerWidth<=820;mobileNav?.classList.toggle('open',yes);menuBtn?.setAttribute('aria-expanded',String(yes));document.body.classList.toggle('mobile-nav-open',yes)};
+ menuBtn?.addEventListener('click',()=>toggle(!mobileNav?.classList.contains('open')));
+ mobileNav?.addEventListener('click',e=>{if(e.target.closest('a'))toggle(false)});
+ const clock=()=>{const now=new Date(),a=$('#portalClockDate'),b=$('#portalClockTime');if(a)a.textContent=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(now);if(b)b.textContent=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true}).format(now)};
+ clock();clearInterval(window.__s4uFAAClock);window.__s4uFAAClock=setInterval(clock,1000);
+ const fontKey='s4u_faa_employer_font_size';const setFont=n=>{const v=Math.min(18,Math.max(12,n));document.documentElement.style.setProperty('--portal-font-root',v+'px');localStorage.setItem(fontKey,String(v));$('#fontSizeValue').textContent=v===14?'Default':String(v)};
+ const size=()=>Number(localStorage.getItem(fontKey)||14);setFont(size());
+ $('#fontDown').onclick=()=>setFont(size()-1);$('#fontUp').onclick=()=>setFont(size()+1);$('#fontSizeValue').onclick=()=>setFont(14);
+ $('#supportShortcut').onclick=()=>{if(current!=='support')location.href='/support.html'};
+ $('#logout').onclick=async()=>{await sb.auth.signOut({scope:'local'});location.replace('https://portal.screenings4u.com/')};
 }
 function metric(label,value,note=''){return `<div class="metric"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(note)}</span></div>`}
 function read(o,keys){for(const k of keys){let v=o;for(const p of k.split('.'))v=v?.[p];if(v!==undefined&&v!==null&&v!=='')return v}return'—'}
@@ -504,7 +498,7 @@ async function render(ctx){
 
 async function init(){
   try{
-    const s=await getSession();if(!s){location.replace('/login.html');return}
+    const s=await getSession();if(!s){location.replace('https://portal.screenings4u.com/');return}
     const startingMid=stored(),startingCache=readBrandCache(startingMid);if(startingCache?.branding)primeBranding(startingCache.branding);
     const prefetchedBrand=startingMid?fetchBranding().catch(e=>{console.warn('Branding prefetch unavailable',e);return null}):null;
     const ctx=await access();if(ctx.requires_workspace_selection){location.replace('/workspace.html');return}if(!ctx.has_access)throw new Error(ctx.reason||'Portal access denied.');if(ctx.portal_code!==C.portalCode||ctx.business_surface!=='dot'||ctx.membership?.organization_type!=='employer')throw new Error('This account is not authorized for this DOT management portal.');if(C.kind==='agency'){const expected=`dot_${String(C.agency||'').toLowerCase()}_`;if(!String(ctx.subscription?.plan_code||'').startsWith(expected))throw new Error(`This subscription does not include the ${C.agency} management portal.`)}else if(ctx.subscription?.plan_code&&!String(ctx.subscription.plan_code).startsWith('dot_employer_'))throw new Error('This subscription is not a DOT Employer plan.');
@@ -514,10 +508,10 @@ async function init(){
     if(cache){if(cache.branding)applyBranding(cache.branding,ctx);else applyPlatformBranding(ctx);setBrandLogo(cache.branding?.logo_path||'/assets/img/logo.png',cache.branding?.portal_name||ctx?.subscription?.plan_name||C.label);document.body.classList.remove('loading')}
     const renderPromise=render(ctx);
     const brandPromise=loadBranding(ctx,startingMid===ctx.membership?.id?prefetchedBrand:null);
-    if(!cache){await brandPromise;document.body.classList.remove('loading')}else brandPromise.catch(()=>{});
+    if(!cache){document.body.classList.remove('loading');brandPromise.catch(()=>{});}else brandPromise.catch(()=>{});
     await renderPromise;
   }
-  catch(e){if(e.status===401||e.message==='AUTH_REQUIRED'){await sb.auth.signOut();location.replace('/login.html');return}document.body.className='login-page';document.body.innerHTML=`<main class="login-card"><img class="login-logo" src="/assets/img/logo.png"><h1>Portal unavailable</h1><p>${esc(e.message||String(e))}</p><a class="btn primary" href="/login.html">Return to login</a></main>`}
+  catch(e){if(e.status===401||e.message==='AUTH_REQUIRED'){await sb.auth.signOut();location.replace('https://portal.screenings4u.com/');return}document.body.className='login-page';document.body.innerHTML=`<main class="login-card"><img class="login-logo" src="/assets/img/logo.png"><h1>Portal unavailable</h1><p>${esc(e.message||String(e))}</p><a class="btn primary" href="https://portal.screenings4u.com/selector.html">Return to login</a></main>`}
 }
 window.Portal={invoke,sb,refresh:()=>render(window.portalCtx)};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
