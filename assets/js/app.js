@@ -52,12 +52,12 @@ async function loadBranding(ctx,prefetched=null){let branding=null;try{const d=p
 function shell(ctx){
  const current=page();document.body.dataset.portalPage=norm(current);
  NAV=Array.isArray(ctx?.navigation)&&ctx.navigation.length?ctx.navigation:[
- ['dashboard','Dashboard','⌂'],['company','Company Profile','▣'],['people','Employees & Drivers','●'],
- ['programs','DOT Programs','◎'],['pools','Random Pools','◉'],['selections','Random Selections','↻'],
+ ['dashboard','Dashboard','⌂'],['company','Company Profile','▣'],['people','Safety-Sensitive Employees','●'],
+ ['programs','FAA Testing Programs','◎'],['pools','Random Pools','◉'],['selections','Random Selections','↻'],
  ['testing','Testing','◆'],['results','Results','✓'],['compliance','FAA Compliance','◇'],
- ['documents','Documents','▤'],['reports','Reports','▥'],['notifications','Notifications','✉'],
- ['order-services','Order Services','＋'],['billing','Billing','$'],['branding','Branding','◐'],
- ['consents','Consents','☑'],['team','Team & Roles','♙'],['post-accident','Post-Accident','◆'],['support','Support','?']
+ ['documents','Documents','▤'],['consents','Consents','☑'],['notifications','Notifications','✉'],
+ ['locations','Locations','⌖'],['integrations','Integrations','↔'],['audit-history','Audit History','◷'],
+ ['team','Team','♙'],['users-roles','Users & Roles','♙'],['support','Support','?']
  ].map(([id,label,icon])=>({id,label,icon,href:'/'+id+'.html'}));
  const planLabel=C.label;
  const links=NAV.map(x=>`<a href="${esc(x.href||('/'+x.id+'.html'))}" class="${norm(current)===norm(x.id)?'active':''}"><span class="ico">${esc(x.icon||'•')}</span><span>${esc(x.label||pretty(x.id))}</span></a>`).join('');
